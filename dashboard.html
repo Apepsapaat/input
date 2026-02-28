@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Dashboard Data</h2>
+  <canvas id="myChart"></canvas>
+
+  <script>
+    const sheetId = "https://docs.google.com/spreadsheets/d/1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg/edit?gid=0#gid=0";
+    const sheetName = "Sheet1";
+    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        let labels = [];
+        let values = [];
+
+        data.forEach(row => {
+          labels.push(row.Tanggal);   // sesuaikan dengan nama kolom kamu
+          values.push(row.Jumlah);    // sesuaikan juga
+        });
+
+        new Chart(document.getElementById("myChart"), {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Data Masuk",
+              data: values
+            }]
+          }
+        });
+      });
+
+    // auto refresh tiap 30 detik
+    setTimeout(() => location.reload(), 30000);
+  </script>
+</body>
+</html>
