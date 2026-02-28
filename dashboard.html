@@ -1,28 +1,73 @@
-<script>
-const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
-const sheetName = "Sheet1";
-const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Penjualan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Dashboard Penjualan</h2>
 
-fetch(url)
-  .then(res => res.json())
-  .then(data => {
-    console.log("DATA:", data);
+  <h3>Total Qty: <span id="totalQty">0</span></h3>
+  <h3>Total Harga: Rp <span id="totalHarga">0</span></h3>
 
-    let totalQty = 0;
-    let totalHarga = 0;
+  <canvas id="chartHarian" width="600" height="300"></canvas>
 
-    let perHari = {};
-    let perAdmin = {};
+  <script>
+    const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
+    const sheetName = "Sheet1";
+    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
-    data.forEach(row => {
-      // === AMBIL BERDASARKAN URUTAN KOLOM ===
-      let tanggalFull = row[0]; // kolom A
-      let qtyRaw = row[2];      // kolom C
-      let hargaRaw = row[3];    // kolom D
-      let admin = row[5] || "Unknown"; // kolom F
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
 
-      if (!tanggalFull) return;
+        let totalQty = 0;
+        let totalHarga = 0;
 
-      // bersihkan format angka
-      let qty = Number(qtyRaw.toString().replace(/\./g, "").replace(/,/g, "")) || 0;
-      let harga = Number(hargaRaw.toString().replace(/\./g, "").replace(/,/g, "")) || 0;
+        let perHari = {}; // { "26/02/2026": 320000 }
+
+        data.forEach(row => {
+          const tanggalFull = row["Tanggal"];
+          const tanggal = tanggalFull.split(" ")[0]; // ambil tanggal saja
+
+          const qty = Number(row["Qty"]) || 0;
+          const harga = Number(row["Total harga"]) || 0;
+
+          totalQty += qty;
+          totalHarga += harga;
+
+          if (!perHari[tanggal]) {
+            perHari[tanggal] = 0;
+          }
+          perHari[tanggal] += harga;
+        });
+
+        // tampilkan total
+        document.getElementById("totalQty").innerText = totalQty;
+        document.getElementById("totalHarga").innerText = totalHarga.toLocaleString("id-ID");
+
+        // data untuk chart
+        const labels = Object.keys(perHari);
+        const values = Object.values(perHari);
+
+        new Chart(document.getElementById("chartHarian"), {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Total Penjualan per Hari",
+              data: values,
+              fill: false,
+              tension: 0.2
+            }]
+          }
+        });
+
+      });
+
+    // auto refresh tiap 30 detik
+    setTimeout(() => location.reload(), 30000);
+  </script>
+</body>
+</html>
