@@ -2,68 +2,68 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard</title>
+  <title>Dashboard Penjualan</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h2>Dashboard Data Barang</h2>
+  <h2>Dashboard Penjualan</h2>
 
-  <canvas id="chartJumlah" width="400" height="200"></canvas>
-  <canvas id="chartDus" width="400" height="200"></canvas>
-  <canvas id="chartPalet" width="400" height="200"></canvas>
+  <h3>Total Qty: <span id="totalQty">0</span></h3>
+  <h3>Total Harga: Rp <span id="totalHarga">0</span></h3>
+
+  <canvas id="chartHarian" width="600" height="300"></canvas>
 
   <script>
-    const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
+    const sheetId = "1CM6gL_ZucJMCCRnJwUtE1xKGhlkiYJvcKjz7e1CqSMM";
     const sheetName = "Sheet1";
     const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        let labels = [];
-        let jumlahData = [];
-        let dusData = [];
-        let paletData = [];
+
+        let totalQty = 0;
+        let totalHarga = 0;
+
+        let perHari = {}; // { "26/02/2026": 320000 }
 
         data.forEach(row => {
-          labels.push(row["Tanggal"]);
-          jumlahData.push(Number(row["Jumlah"]) || 0);
-          dusData.push(Number(row["Dus"]) || 0);
-          paletData.push(Number(row["Palet"]) || 0);
+          const tanggalFull = row["Tanggal"];
+          const tanggal = tanggalFull.split(" ")[0]; // ambil tanggal saja
+
+          const qty = Number(row["Qty"]) || 0;
+          const harga = Number(row["Total harga"]) || 0;
+
+          totalQty += qty;
+          totalHarga += harga;
+
+          if (!perHari[tanggal]) {
+            perHari[tanggal] = 0;
+          }
+          perHari[tanggal] += harga;
         });
 
-        new Chart(document.getElementById("chartJumlah"), {
+        // tampilkan total
+        document.getElementById("totalQty").innerText = totalQty;
+        document.getElementById("totalHarga").innerText = totalHarga.toLocaleString("id-ID");
+
+        // data untuk chart
+        const labels = Object.keys(perHari);
+        const values = Object.values(perHari);
+
+        new Chart(document.getElementById("chartHarian"), {
           type: "line",
           data: {
             labels: labels,
             datasets: [{
-              label: "Jumlah",
-              data: jumlahData
+              label: "Total Penjualan per Hari",
+              data: values,
+              fill: false,
+              tension: 0.2
             }]
           }
         });
 
-        new Chart(document.getElementById("chartDus"), {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Dus",
-              data: dusData
-            }]
-          }
-        });
-
-        new Chart(document.getElementById("chartPalet"), {
-          type: "bar",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Palet",
-              data: paletData
-            }]
-          }
-        });
       });
 
     // auto refresh tiap 30 detik
