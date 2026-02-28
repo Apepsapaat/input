@@ -1,69 +1,85 @@
-<script>
-const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
-const sheetName = "Sheet1";
-const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Penjualan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>Dashboard Penjualan</h2>
 
-fetch(url)
-  .then(res => res.json())
-  .then(data => {
+  <h3>Total Qty: <span id="totalQty">0</span></h3>
+  <h3>Total Harga: Rp <span id="totalHarga">0</span></h3>
 
-    let totalQty = 0;
-    let totalHarga = 0;
+  <canvas id="chartHarian" width="600" height="300"></canvas>
+  <canvas id="chartAdmin" width="600" height="300"></canvas>
 
-    let perHari = {};   // { "26/02/2026": 320000 }
-    let perAdmin = {};  // { "apepopus": 320000 }
+  <script>
+    const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
+    const sheetName = "Sheet1";
+    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
-    data.forEach(row => {
-      const tanggalFull = row["Tanggal"];
-      const tanggal = tanggalFull.split(" ")[0];
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        console.log("DATA:", data); // DEBUG
 
-      const qty = Number(row["Qty"]) || 0;
-      const harga = Number(row["Total harga"]) || 0;
-      const admin = row["Admin"] || "Unknown";
+        let totalQty = 0;
+        let totalHarga = 0;
 
-      totalQty += qty;
-      totalHarga += harga;
+        let perHari = {};
+        let perAdmin = {};
 
-      // rekap per hari
-      if (!perHari[tanggal]) perHari[tanggal] = 0;
-      perHari[tanggal] += harga;
+        data.forEach(row => {
+          const tanggalFull = row["Tanggal"] || row["tanggal"];
+          const qty = Number(row["Qty"] || row["qty"] || row["Jumlah"]) || 0;
+          const harga = Number(row["Total harga"] || row["Total Harga"] || row["total harga"]) || 0;
+          const admin = row["Admin"] || row["admin"] || "Unknown";
 
-      // rekap per admin
-      if (!perAdmin[admin]) perAdmin[admin] = 0;
-      perAdmin[admin] += harga;
-    });
+          if (!tanggalFull) return;
 
-    // tampilkan total
-    document.getElementById("totalQty").innerText = totalQty;
-    document.getElementById("totalHarga").innerText =
-      totalHarga.toLocaleString("id-ID");
+          const tanggal = tanggalFull.split(" ")[0];
 
-    // === GRAFIK PER HARI ===
-    new Chart(document.getElementById("chartHarian"), {
-      type: "line",
-      data: {
-        labels: Object.keys(perHari),
-        datasets: [{
-          label: "Total Penjualan per Hari",
-          data: Object.values(perHari)
-        }]
-      }
-    });
+          totalQty += qty;
+          totalHarga += harga;
 
-    // === GRAFIK PER ADMIN ===
-    new Chart(document.getElementById("chartAdmin"), {
-      type: "bar",
-      data: {
-        labels: Object.keys(perAdmin),
-        datasets: [{
-          label: "Total Penjualan per Admin",
-          data: Object.values(perAdmin)
-        }]
-      }
-    });
+          if (!perHari[tanggal]) perHari[tanggal] = 0;
+          perHari[tanggal] += harga;
 
-  });
+          if (!perAdmin[admin]) perAdmin[admin] = 0;
+          perAdmin[admin] += harga;
+        });
 
-// auto refresh tiap 30 detik
-setTimeout(() => location.reload(), 30000);
-</script>
+        document.getElementById("totalQty").innerText = totalQty;
+        document.getElementById("totalHarga").innerText =
+          totalHarga.toLocaleString("id-ID");
+
+        new Chart(document.getElementById("chartHarian"), {
+          type: "line",
+          data: {
+            labels: Object.keys(perHari),
+            datasets: [{
+              label: "Total Penjualan per Hari",
+              data: Object.values(perHari)
+            }]
+          }
+        });
+
+        new Chart(document.getElementById("chartAdmin"), {
+          type: "bar",
+          data: {
+            labels: Object.keys(perAdmin),
+            datasets: [{
+              label: "Total Penjualan per Admin",
+              data: Object.values(perAdmin)
+            }]
+          }
+        });
+
+      })
+      .catch(err => console.error("ERROR:", err));
+
+    setTimeout(() => location.reload(), 30000);
+  </script>
+</body>
+</html>
