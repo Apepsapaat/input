@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
+  <meta charset="UTF-8">
   <title>Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h2>Dashboard Data</h2>
-  <canvas id="myChart"></canvas>
+  <h2>Dashboard Data Barang</h2>
+
+  <canvas id="chartJumlah" width="400" height="200"></canvas>
+  <canvas id="chartDus" width="400" height="200"></canvas>
+  <canvas id="chartPalet" width="400" height="200"></canvas>
 
   <script>
-    const sheetId = "https://docs.google.com/spreadsheets/d/1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg/edit?gid=0#gid=0";
+    const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
     const sheetName = "Sheet1";
     const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
@@ -17,20 +21,46 @@
       .then(res => res.json())
       .then(data => {
         let labels = [];
-        let values = [];
+        let jumlahData = [];
+        let dusData = [];
+        let paletData = [];
 
         data.forEach(row => {
-          labels.push(row.Tanggal);   // sesuaikan dengan nama kolom kamu
-          values.push(row.Jumlah);    // sesuaikan juga
+          labels.push(row["Tanggal"]);
+          jumlahData.push(Number(row["Jumlah"]) || 0);
+          dusData.push(Number(row["Dus"]) || 0);
+          paletData.push(Number(row["Palet"]) || 0);
         });
 
-        new Chart(document.getElementById("myChart"), {
+        new Chart(document.getElementById("chartJumlah"), {
           type: "line",
           data: {
             labels: labels,
             datasets: [{
-              label: "Data Masuk",
-              data: values
+              label: "Jumlah",
+              data: jumlahData
+            }]
+          }
+        });
+
+        new Chart(document.getElementById("chartDus"), {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Dus",
+              data: dusData
+            }]
+          }
+        });
+
+        new Chart(document.getElementById("chartPalet"), {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Palet",
+              data: paletData
             }]
           }
         });
