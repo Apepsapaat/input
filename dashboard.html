@@ -30,11 +30,17 @@
         let perHari = {};
         let perAdmin = {};
 
-        data.forEach(row => {
-          const tanggalFull = row["Tanggal"] || row["tanggal"];
-          const qty = Number(row["Qty"] || row["qty"] || row["Jumlah"]) || 0;
-          const harga = Number(row["Total harga"] || row["Total Harga"] || row["total harga"]) || 0;
-          const admin = row["Admin"] || row["admin"] || "Unknown";
+       data.forEach(row => {
+  const tanggalFull = row["Tanggal"] || row["tanggal"];
+
+  let qtyRaw = row["Qty"] || row["qty"] || row["Jumlah"] || "0";
+  let hargaRaw = row["Total harga"] || row["Total Harga"] || row["total harga"] || "0";
+
+  let qty = Number(qtyRaw.toString().replace(/\./g, "")) || 0;
+  let harga = Number(hargaRaw.toString().replace(/\./g, "")) || 0;
+
+  const admin = row["Admin"] || row["admin"] || "Unknown";
+
 
           if (!tanggalFull) return;
 
