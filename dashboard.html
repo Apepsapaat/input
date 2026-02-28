@@ -1,73 +1,69 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Penjualan</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <h2>Dashboard Penjualan</h2>
+<script>
+const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
+const sheetName = "Sheet1";
+const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
 
-  <h3>Total Qty: <span id="totalQty">0</span></h3>
-  <h3>Total Harga: Rp <span id="totalHarga">0</span></h3>
+fetch(url)
+  .then(res => res.json())
+  .then(data => {
 
-  <canvas id="chartHarian" width="600" height="300"></canvas>
+    let totalQty = 0;
+    let totalHarga = 0;
 
-  <script>
-    const sheetId = "1CM6gL_ZucJMCCRnJwUtE1xKGhlkiYJvcKjz7e1CqSMM";
-    const sheetName = "Sheet1";
-    const url = `https://opensheet.elk.sh/${sheetId}/${sheetName}`;
+    let perHari = {};   // { "26/02/2026": 320000 }
+    let perAdmin = {};  // { "apepopus": 320000 }
 
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
+    data.forEach(row => {
+      const tanggalFull = row["Tanggal"];
+      const tanggal = tanggalFull.split(" ")[0];
 
-        let totalQty = 0;
-        let totalHarga = 0;
+      const qty = Number(row["Qty"]) || 0;
+      const harga = Number(row["Total harga"]) || 0;
+      const admin = row["Admin"] || "Unknown";
 
-        let perHari = {}; // { "26/02/2026": 320000 }
+      totalQty += qty;
+      totalHarga += harga;
 
-        data.forEach(row => {
-          const tanggalFull = row["Tanggal"];
-          const tanggal = tanggalFull.split(" ")[0]; // ambil tanggal saja
+      // rekap per hari
+      if (!perHari[tanggal]) perHari[tanggal] = 0;
+      perHari[tanggal] += harga;
 
-          const qty = Number(row["Qty"]) || 0;
-          const harga = Number(row["Total harga"]) || 0;
+      // rekap per admin
+      if (!perAdmin[admin]) perAdmin[admin] = 0;
+      perAdmin[admin] += harga;
+    });
 
-          totalQty += qty;
-          totalHarga += harga;
+    // tampilkan total
+    document.getElementById("totalQty").innerText = totalQty;
+    document.getElementById("totalHarga").innerText =
+      totalHarga.toLocaleString("id-ID");
 
-          if (!perHari[tanggal]) {
-            perHari[tanggal] = 0;
-          }
-          perHari[tanggal] += harga;
-        });
+    // === GRAFIK PER HARI ===
+    new Chart(document.getElementById("chartHarian"), {
+      type: "line",
+      data: {
+        labels: Object.keys(perHari),
+        datasets: [{
+          label: "Total Penjualan per Hari",
+          data: Object.values(perHari)
+        }]
+      }
+    });
 
-        // tampilkan total
-        document.getElementById("totalQty").innerText = totalQty;
-        document.getElementById("totalHarga").innerText = totalHarga.toLocaleString("id-ID");
+    // === GRAFIK PER ADMIN ===
+    new Chart(document.getElementById("chartAdmin"), {
+      type: "bar",
+      data: {
+        labels: Object.keys(perAdmin),
+        datasets: [{
+          label: "Total Penjualan per Admin",
+          data: Object.values(perAdmin)
+        }]
+      }
+    });
 
-        // data untuk chart
-        const labels = Object.keys(perHari);
-        const values = Object.values(perHari);
+  });
 
-        new Chart(document.getElementById("chartHarian"), {
-          type: "line",
-          data: {
-            labels: labels,
-            datasets: [{
-              label: "Total Penjualan per Hari",
-              data: values,
-              fill: false,
-              tension: 0.2
-            }]
-          }
-        });
-
-      });
-
-    // auto refresh tiap 30 detik
-    setTimeout(() => location.reload(), 30000);
-  </script>
-</body>
-</html>
+// auto refresh tiap 30 detik
+setTimeout(() => location.reload(), 30000);
+</script>
