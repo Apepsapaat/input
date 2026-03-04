@@ -12,6 +12,8 @@
   <h3>Total Harga: Rp <span id="totalHarga">0</span></h3>
 
   <canvas id="chartHarian" width="600" height="300"></canvas>
+  <br>
+  <canvas id="chartAdmin" width="600" height="300"></canvas>
 
   <script>
     const sheetId = "1Z5c8JLblRDl1gDwbGSUK1uL3-YZxA7-lJIPAuRwSwGg";
@@ -25,48 +27,65 @@
         let totalQty = 0;
         let totalHarga = 0;
 
-        let perHari = {}; // { "26/02/2026": 320000 }
+        let perHari = {};
+        let perAdmin = {};
 
         data.forEach(row => {
           const tanggalFull = row["Tanggal"];
-          const tanggal = tanggalFull.split(" ")[0]; // ambil tanggal saja
+          if (!tanggalFull) return;
+
+          const tanggal = tanggalFull.split(" ")[0];
 
           const qty = Number(row["Qty"]) || 0;
           const harga = Number(row["Total harga"]) || 0;
+          const admin = row["Admin"] || "Unknown";
 
           totalQty += qty;
           totalHarga += harga;
 
-          if (!perHari[tanggal]) {
-            perHari[tanggal] = 0;
-          }
+          // === PER HARI ===
+          if (!perHari[tanggal]) perHari[tanggal] = 0;
           perHari[tanggal] += harga;
+
+          // === PER ADMIN ===
+          if (!perAdmin[admin]) perAdmin[admin] = 0;
+          perAdmin[admin] += harga;
         });
 
-        // tampilkan total
         document.getElementById("totalQty").innerText = totalQty;
-        document.getElementById("totalHarga").innerText = totalHarga.toLocaleString("id-ID");
+        document.getElementById("totalHarga").innerText =
+          totalHarga.toLocaleString("id-ID");
 
-        // data untuk chart
-        const labels = Object.keys(perHari);
-        const values = Object.values(perHari);
-
+        // ===== CHART HARIAN =====
         new Chart(document.getElementById("chartHarian"), {
           type: "line",
           data: {
-            labels: labels,
+            labels: Object.keys(perHari),
             datasets: [{
-              label: "Total Penjualan per Hari",
-              data: values,
-              fill: false,
-              tension: 0.2
+              label: "Penjualan per Hari",
+              data: Object.values(perHari),
+              borderWidth: 2,
+              tension: 0.3
+            }]
+          }
+        });
+
+        // ===== CHART ADMIN =====
+        new Chart(document.getElementById("chartAdmin"), {
+          type: "bar",
+          data: {
+            labels: Object.keys(perAdmin),
+            datasets: [{
+              label: "Penjualan per Admin",
+              data: Object.values(perAdmin),
+              borderWidth: 1
             }]
           }
         });
 
       });
 
-    // auto refresh tiap 30 detik
+    // auto refresh 30 detik
     setTimeout(() => location.reload(), 30000);
   </script>
 </body>
