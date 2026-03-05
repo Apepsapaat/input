@@ -29,8 +29,7 @@
           const tanggalFull = row["Tanggal"];
           if (!tanggalFull) return;
 
-          const jumlahRaw = String(row["Jumlah"]); 
-          const jumlah = Number(jumlahRaw.replace(/\./g, "")) || 0;
+         const jumlah = Number(row["Jumlah"]) || 0;
 
           totalQty += jumlah;
 
