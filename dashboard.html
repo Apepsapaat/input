@@ -29,7 +29,8 @@
           const tanggalFull = row["Tanggal"];
           if (!tanggalFull) return;
 
-         const jumlah = Number(row["Jumlah"]) || 0;
+          const tanggal = tanggalFull.split(" ")[0]; // 28/02/2026
+          const jumlah = Number(row["Jumlah"]) || 0;
 
           totalQty += jumlah;
 
