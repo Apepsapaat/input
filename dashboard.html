@@ -98,17 +98,17 @@ const dataMasuk = labels.map(t => perHari[t].masuk);
 const dataKeluar = labels.map(t => perHari[t].keluar);
 
 new Chart(document.getElementById("chartHarian"),{
-type:"line",
 data:{
 labels:labels,
 datasets:[
 {
+type:"bar",
 label:"Masuk",
 data:dataMasuk,
-borderWidth:2,
-tension:0.3
+borderWidth:1
 },
 {
+type:"line",
 label:"Keluar",
 data:dataKeluar,
 borderWidth:2,
@@ -117,6 +117,7 @@ tension:0.3
 ]
 }
 });
+
 
 });
 
