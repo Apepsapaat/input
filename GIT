@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Goods In Transit Dashboard</title>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body{
+      background:#f2f2f2;
+      padding:20px;
+    }
+
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:20px;
+    }
+
+    .title{
+      font-size:42px;
+      font-weight:300;
+      letter-spacing:1px;
+    }
+
+    .total-box{
+      width:260px;
+      background:white;
+      border:1px solid #999;
+      padding:10px;
+      text-align:center;
+      border-radius:3px;
+    }
+
+    .total-box small{
+      display:block;
+      color:#666;
+      margin-bottom:5px;
+    }
+
+    .total-box h1{
+      font-size:24px;
+      font-weight:normal;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap:14px;
+      margin-bottom:20px;
+    }
+
+    .filters select,
+    .filters input{
+      width:100%;
+      padding:12px;
+      border:1px solid #999;
+      background:white;
+      border-radius:3px;
+    }
+
+    .tables{
+      display:grid;
+      grid-template-columns: 1fr 1fr 2fr 3fr;
+      gap:12px;
+    }
+
+    .table-card{
+      background:white;
+      border:1px solid #bbb;
+      padding:5px;
+      overflow:auto;
+      height:460px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:12px;
+    }
+
+    thead{
+      background:#dbe3ef;
+      position:sticky;
+      top:0;
+    }
+
+    th{
+      text-align:left;
+      padding:8px;
+      border-bottom:1px solid #ccc;
+    }
+
+    td{
+      padding:6px 8px;
+      border-bottom:1px solid #eee;
+      color:#d10000;
+    }
+
+    .right{
+      text-align:right;
+    }
+
+    .center{
+      text-align:center;
+    }
+
+    .loading{
+      text-align:center;
+      padding:20px;
+      color:#666;
+    }
+
+    @media(max-width:1200px){
+      .tables{
+        grid-template-columns:1fr;
+      }
+
+      .filters{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div class="title">GOODS IN TRANSIT</div>
+
+    <div class="total-box">
+      <small>TOTAL_COST</small>
+      <h1 id="totalCost">0</h1>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filters">
+    <select id="filterFrom">
+      <option value="">FROM</option>
+    </select>
+
+    <select id="filterTo">
+      <option value="">TO</option>
+    </select>
+
+    <select id="filterCategory">
+      <option value="">CATEGORY</option>
+    </select>
+
+    <input type="text" id="searchItem" placeholder="Search Item">
+    <input type="text" id="searchDesc" placeholder="Search ARTDESC">
+    <input type="text" id="searchMutasi" placeholder="Search MUTASI_NO">
+  </div>
+
+  <!-- TABLES -->
+  <div class="tables">
+
+    <!-- TANGGAL -->
+    <div class="table-card">
+      <table id="tanggalTable">
+        <thead>
+          <tr>
+            <th>TANGGAL</th>
+            <th class="right">COST</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- FROM -->
+    <div class="table-card">
+      <table id="fromTable">
+        <thead>
+          <tr>
+            <th>FROM</th>
+            <th class="right">COST</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- ARTDESC -->
+    <div class="table-card">
+      <table id="artTable">
+        <thead>
+          <tr>
+            <th>ARTDESC</th>
+            <th class="center">QTY</th>
+            <th class="right">COST</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="table-card">
+      <table id="detailTable">
+        <thead>
+          <tr>
+            <th>TANGGAL</th>
+            <th>MUTASI_NO</th>
+            <th>FROM</th>
+            <th>TO</th>
+            <th>ARTDESC</th>
+            <th>Qty</th>
+            <th>Cost</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    // ==============================
+    // GANTI DENGAN URL SPREADSHEET
+    // ==============================
+    const sheetURL =
+      "https://opensheet.elk.sh/14KYOozrOSrbc8rgEL_KWOPF4U4g0IEZ-2IaYKxNNvoU/GIT";
+
+    let rawData = [];
+
+    async function loadData() {
+      try {
+
+        const res = await fetch(sheetURL);
+        const data = await res.json();
+
+        rawData = data;
+
+        renderDashboard(rawData);
+        fillFilters(rawData);
+
+      } catch (err) {
+        console.error(err);
+        alert("Gagal mengambil data spreadsheet");
+      }
+    }
+
+    function numberFormat(num){
+      return Number(num || 0).toLocaleString("id-ID");
+    }
+
+    function renderDashboard(data){
+
+      // =====================
+      // TOTAL COST
+      // =====================
+      const total = data.reduce((a,b)=>
+        a + Number(b.COST || 0),0);
+
+      document.getElementById("totalCost").innerHTML =
+        numberFormat(total);
+
+      // =====================
+      // DETAIL TABLE
+      // =====================
+      const detailBody =
+        document.querySelector("#detailTable tbody");
+
+      detailBody.innerHTML = "";
+
+      data.forEach(row=>{
+
+        detailBody.innerHTML += `
+          <tr>
+            <td>${row.TANGGAL || ""}</td>
+            <td>${row.MUTASI_NO || ""}</td>
+            <td>${row.FROM || ""}</td>
+            <td>${row.TO || ""}</td>
+            <td>${row.ARTDESC || ""}</td>
+            <td class="center">${row.QTY || 0}</td>
+            <td class="right">${numberFormat(row.COST)}</td>
+          </tr>
+        `;
+      });
+
+      // =====================
+      // GROUP TANGGAL
+      // =====================
+      const tanggalMap = {};
+
+      data.forEach(r=>{
+        if(!tanggalMap[r.TANGGAL]){
+          tanggalMap[r.TANGGAL] = 0;
+        }
+
+        tanggalMap[r.TANGGAL] += Number(r.COST || 0);
+      });
+
+      const tanggalBody =
+        document.querySelector("#tanggalTable tbody");
+
+      tanggalBody.innerHTML = "";
+
+      Object.keys(tanggalMap).forEach(t=>{
+        tanggalBody.innerHTML += `
+          <tr>
+            <td>${t}</td>
+            <td class="right">${numberFormat(tanggalMap[t])}</td>
+          </tr>
+        `;
+      });
+
+      // =====================
+      // GROUP FROM
+      // =====================
+      const fromMap = {};
+
+      data.forEach(r=>{
+        if(!fromMap[r.FROM]){
+          fromMap[r.FROM] = 0;
+        }
+
+        fromMap[r.FROM] += Number(r.COST || 0);
+      });
+
+      const fromBody =
+        document.querySelector("#fromTable tbody");
+
+      fromBody.innerHTML = "";
+
+      Object.keys(fromMap).forEach(f=>{
+        fromBody.innerHTML += `
+          <tr>
+            <td>${f}</td>
+            <td class="right">${numberFormat(fromMap[f])}</td>
+          </tr>
+        `;
+      });
+
+      // =====================
+      // GROUP ARTDESC
+      // =====================
+      const artMap = {};
+
+      data.forEach(r=>{
+
+        if(!artMap[r.ARTDESC]){
+          artMap[r.ARTDESC] = {
+            qty:0,
+            cost:0
+          };
+        }
+
+        artMap[r.ARTDESC].qty += Number(r.QTY || 0);
+        artMap[r.ARTDESC].cost += Number(r.COST || 0);
+
+      });
+
+      const artBody =
+        document.querySelector("#artTable tbody");
+
+      artBody.innerHTML = "";
+
+      Object.keys(artMap).forEach(a=>{
+
+        artBody.innerHTML += `
+          <tr>
+            <td>${a}</td>
+            <td class="center">${numberFormat(artMap[a].qty)}</td>
+            <td class="right">${numberFormat(artMap[a].cost)}</td>
+          </tr>
+        `;
+
+      });
+
+    }
+
+    // =====================
+    // FILTER DROPDOWN
+    // =====================
+    function fillFilters(data){
+
+      const fromSet =
+        [...new Set(data.map(d=>d.FROM))];
+
+      const toSet =
+        [...new Set(data.map(d=>d.TO))];
+
+      const catSet =
+        [...new Set(data.map(d=>d.CATDESC))];
+
+      fromSet.forEach(v=>{
+        filterFrom.innerHTML +=
+          `<option value="${v}">${v}</option>`;
+      });
+
+      toSet.forEach(v=>{
+        filterTo.innerHTML +=
+          `<option value="${v}">${v}</option>`;
+      });
+
+      catSet.forEach(v=>{
+        filterCategory.innerHTML +=
+          `<option value="${v}">${v}</option>`;
+      });
+
+    }
+
+    // =====================
+    // FILTER FUNCTION
+    // =====================
+    function applyFilter(){
+
+      const fromVal =
+        document.getElementById("filterFrom").value;
+
+      const toVal =
+        document.getElementById("filterTo").value;
+
+      const catVal =
+        document.getElementById("filterCategory").value;
+
+      const itemVal =
+        document.getElementById("searchItem")
+        .value.toLowerCase();
+
+      const descVal =
+        document.getElementById("searchDesc")
+        .value.toLowerCase();
+
+      const mutasiVal =
+        document.getElementById("searchMutasi")
+        .value.toLowerCase();
+
+      const filtered = rawData.filter(r=>{
+
+        return (
+          (!fromVal || r.FROM === fromVal) &&
+          (!toVal || r.TO === toVal) &&
+          (!catVal || r.CATDESC === catVal) &&
+          (!itemVal || (r.ITEM || "")
+            .toLowerCase().includes(itemVal)) &&
+          (!descVal || (r.ARTDESC || "")
+            .toLowerCase().includes(descVal)) &&
+          (!mutasiVal || (r.MUTASI_NO || "")
+            .toLowerCase().includes(mutasiVal))
+        );
+
+      });
+
+      renderDashboard(filtered);
+    }
+
+    // =====================
+    // EVENT FILTER
+    // =====================
+    document
+      .querySelectorAll("select,input")
+      .forEach(el=>{
+        el.addEventListener("input", applyFilter);
+      });
+
+    loadData();
+  </script>
+
+</body>
+</html>
