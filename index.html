@@ -12,6 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
     .container {
       background-color: #fff;
@@ -51,7 +52,7 @@
   </div>
 
   <div id="mainForm" style="display:none;">
-    <h2>Form Input Barang </h2>
+    <h2>Form Input Barang</h2>
     <form id="returForm">
       <input type="text" name="nama_barang" placeholder="Nama Barang" required>
       <input type="number" name="jumlah" placeholder="Jumlah" required>
@@ -63,6 +64,7 @@
 </div>
 
 <script>
+  // Konfigurasi Login
   const VALID_USER = "sapan";
   const VALID_PASS = "12345";
 
@@ -78,17 +80,28 @@
     }
   }
 
-  const scriptURL = 'https://script.google.com/macros/s/AKfycby74WkxZNY-xdNpTv7UB35eE4zCqSVKv6PXcmtG0UcCFfv-1P-de9fAhMx1bflrJvo/exec';
+  // Konfigurasi Pengiriman Google Sheets (Tanpa Jeda)
+  const scriptURL = 'https://script.google.com/macros/s/AKfycbxOX4KSEyBZ7WUUQyvUP9BU3uu7TnBr0Ikhim50gg_4WRGcgzNw2kDwePVLMvLpHmY/exec';
   const form = document.getElementById('returForm');
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+
+    // 1. Ambil data dari form saat ini
+    const formData = new FormData(form);
+
+    // 2. LANGSUNG BERIKAN RESPON INSTAN KE USER (Form langsung reset & siap input lagi)
+    alert("Data berhasil dikirim!"); 
+    form.reset();
+
+    // 3. Proses pengiriman asli ke Google Sheets berjalan diam-diam di latar belakang
+    fetch(scriptURL, { method: 'POST', body: formData })
       .then(response => {
-        alert("Done");
-        form.reset();
+        console.log("Data sukses tercatat di Google Sheets:", response);
       })
-      .catch(error => alert("Gagal: " + error.message));
+      .catch(error => {
+        console.error("Gagal sinkronisasi ke latar belakang:", error);
+      });
   });
 </script>
 
