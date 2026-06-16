@@ -90,11 +90,20 @@
     // 1. Ambil data dari form saat ini
     const formData = new FormData(form);
 
-    // 2. LANGSUNG BERIKAN RESPON INSTAN KE USER (Form langsung reset & siap input lagi)
+    // 2. BUAT TANGGAL OTOMATIS & SERTAKAN KE DATA FORM
+    const sekarang = new Date();
+    // Format tanggal Indonesia: DD/MM/YYYY, HH.MM.SS
+    const opsiWaktu = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const tanggalMasuk = sekarang.toLocaleString('id-ID', opsiWaktu);
+    
+    // Memasukkan parameter 'tanggal_masuk' secara diam-diam ke dalam data pengiriman
+    formData.append('tanggal_masuk', tanggalMasuk);
+
+    // 3. LANGSUNG BERIKAN RESPON INSTAN KE USER (Form langsung reset & siap input lagi)
     alert("Data berhasil dikirim!"); 
     form.reset();
 
-    // 3. Proses pengiriman asli ke Google Sheets berjalan diam-diam di latar belakang
+    // 4. Proses pengiriman asli ke Google Sheets berjalan diam-diam di latar belakang
     fetch(scriptURL, { method: 'POST', body: formData })
       .then(response => {
         console.log("Data sukses tercatat di Google Sheets:", response);
