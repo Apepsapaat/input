@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Form Input Barang - Login</title>
+  <!-- SCRIPT UNTUK LIBRARY SCANNER BARCODE -->
+  <script src="https://unpkg.com" type="text/javascript"></script>
+  
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,7 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
     }
     .container {
@@ -39,6 +42,25 @@
     button:hover {
       background-color: #0d47a1;
     }
+    /* Style Tambahan untuk Scanner */
+    .input-group {
+      position: relative;
+    }
+    .btn-scan {
+      background-color: #2e7d32;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    .btn-scan:hover {
+      background-color: #1b5e20;
+    }
+    #reader {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      border: none !important; /* Menghilangkan border default library */
+    }
   </style>
 </head>
 <body>
@@ -53,8 +75,15 @@
 
   <div id="mainForm" style="display:none;">
     <h2>Form Input Barang</h2>
+    
+    <!-- TEMPAT KAMERA AKAN MUNCUL -->
+    <div id="reader" style="display: none;"></div>
+
     <form id="returForm">
-      <input type="text" name="nama_barang" placeholder="Nama Barang" required>
+      <div class="input-group">
+        <input type="text" name="nama_barang" id="nama_barang" placeholder="Nama Barang / Barcode" required>
+        <button type="button" class="btn-scan" onclick="startScan()">📷 Scan Barcode via Kamera</button>
+      </div>
       <input type="number" name="jumlah" placeholder="Jumlah" required>
       <input type="text" name="dus" placeholder="Dus" required>
       <input type="text" name="palet" placeholder="Palet" required>
@@ -80,30 +109,71 @@
     }
   }
 
+  // LOGIKA SCANNER BARCODE
+  let html5QrcodeScanner = null;
+
+  function startScan() {
+    const readerDiv = document.getElementById('reader');
+    readerDiv.style.display = 'block'; // Tampilkan kotak kamera
+
+    // Inisialisasi scanner jika belum ada
+    if (!html5QrcodeScanner) {
+      html5QrcodeScanner = new Html5Qrcode("reader");
+    }
+
+    // Jalankan kamera belakang (environment)
+    html5QrcodeScanner.start(
+      { facingMode: "environment" }, 
+      {
+        fps: 10,    // Kecepatan scan per detik
+        qrbox: { width: 250, height: 150 } // Area kotak fokus scan
+      },
+      (decodedText, decodedResult) => {
+        // JIKA BARCODE BERHASIL TERBACA:
+        document.getElementById('nama_barang').value = decodedText; // Masukkan hasil ke input
+        stopScan(); // Matikan kamera otomatis
+      },
+      (errorMessage) => {
+        // Abaikan error pencarian berkala agar tidak memenuhi log
+      }
+    ).catch((err) => {
+      alert("Gagal membuka kamera: " + err);
+      readerDiv.style.display = 'none';
+    });
+  }
+
+  function stopScan() {
+    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+      html5QrcodeScanner.stop().then(() => {
+        document.getElementById('reader').style.style.display = 'none';
+      }).catch((err) => {
+        console.error("Gagal menghentikan kamera", err);
+      });
+    } else {
+      document.getElementById('reader').style.display = 'none';
+    }
+  }
+
   // Konfigurasi Pengiriman Google Sheets (Tanpa Jeda)
   const scriptURL = 'https://script.google.com/macros/s/AKfycbxOX4KSEyBZ7WUUQyvUP9BU3uu7TnBr0Ikhim50gg_4WRGcgzNw2kDwePVLMvLpHmY/exec';
   const form = document.getElementById('returForm');
 
   form.addEventListener('submit', e => {
     e.preventDefault();
+    
+    // Pastikan kamera mati saat form dikirim
+    stopScan();
 
-    // 1. Ambil data dari form saat ini
     const formData = new FormData(form);
-
-    // 2. BUAT TANGGAL OTOMATIS & SERTAKAN KE DATA FORM
     const sekarang = new Date();
-    // Format tanggal Indonesia: DD/MM/YYYY, HH.MM.SS
     const opsiWaktu = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     const tanggalMasuk = sekarang.toLocaleString('id-ID', opsiWaktu);
     
-    // Memasukkan parameter 'tanggal_masuk' secara diam-diam ke dalam data pengiriman
     formData.append('tanggal_masuk', tanggalMasuk);
 
-    // 3. LANGSUNG BERIKAN RESPON INSTAN KE USER (Form langsung reset & siap input lagi)
     alert("Data berhasil dikirim!"); 
     form.reset();
 
-    // 4. Proses pengiriman asli ke Google Sheets berjalan diam-diam di latar belakang
     fetch(scriptURL, { method: 'POST', body: formData })
       .then(response => {
         console.log("Data sukses tercatat di Google Sheets:", response);
@@ -116,3 +186,5 @@
 
 </body>
 </html>
+
+  
