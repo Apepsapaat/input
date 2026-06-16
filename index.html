@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Form Input Barang - Login</title>
-  <!-- SCRIPT UTK LIBRARY SCANNER BARCODE (PILIH VERSI STABIL MINI) -->
+  <!-- MEMAKAI CDN SCRIPT SCANNER YANG PALING STABIL -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
   
   <style>
@@ -26,7 +26,7 @@
     }
     input, button {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
       margin-top: 8px;
       margin-bottom: 15px;
       border: 1px solid #ccc;
@@ -38,47 +38,31 @@
       color: white;
       border: none;
       cursor: pointer;
+      font-weight: bold;
     }
     button:hover {
       background-color: #0d47a1;
     }
-    /* Style Tambahan untuk Scanner */
     .btn-scan {
       background-color: #2e7d32;
       margin-top: 0;
-      margin-bottom: 15px;
     }
     .btn-scan:hover {
       background-color: #1b5e20;
     }
     #reader {
       width: 100%;
+      background: #000;
       border-radius: 8px;
-      overflow: hidden;
       margin-bottom: 15px;
-      border: 1px solid #ccc !important;
-      background-color: #fafafa;
-    }
-    /* Merapikan tombol bawaan library di dalam kotak scanner */
-    #reader button {
-      background-color: #f44336;
-      color: white;
-      padding: 6px 10px;
-      margin: 5px auto;
-      width: auto;
-      display: block;
-    }
-    #reader select {
-      padding: 5px;
-      margin: 5px auto;
-      display: block;
-      border-radius: 4px;
+      overflow: hidden;
     }
   </style>
 </head>
 <body>
 
 <div class="container">
+  <!-- FORM LOGIN -->
   <div id="loginForm">
     <h2>Login</h2>
     <input type="text" id="userId" placeholder="User ID" required>
@@ -86,34 +70,34 @@
     <button onclick="login()">Login</button>
   </div>
 
+  <!-- FORM UTAMA -->
   <div id="mainForm" style="display:none;">
     <h2>Form Input Barang</h2>
     
-    <!-- TEMPAT KAMERA AKAN MUNCUL -->
+    <!-- AREA KOTAK PRATINJAU KAMERA -->
     <div id="reader" style="display: none;"></div>
 
     <form id="returForm">
-      <div class="input-group">
-        <input type="text" name="nama_barang" id="nama_barang" placeholder="Nama Barang / Barcode" required>
-        <button type="button" class="btn-scan" id="btnScanAction" onclick="toggleScan()">📷 Buka Kamera Scan</button>
-      </div>
+      <label>Nama Barang / Barcode:</label>
+      <input type="text" name="nama_barang" id="nama_barang" placeholder="Scan atau ketik manual" required>
+      <button type="button" class="btn-scan" id="btnScanAction" onclick="toggleKamera()">📷 Aktifkan Kamera Scan</button>
+      
       <input type="number" name="jumlah" placeholder="Jumlah" required>
       <input type="text" name="dus" placeholder="Dus" required>
       <input type="text" name="palet" placeholder="Palet" required>
-      <button type="submit">Kirim</button>
+      <button type="submit">Kirim Data</button>
     </form>
   </div>
 </div>
 
 <script>
-  // Konfigurasi Login
+  // Autentikasi Sederhana
   const VALID_USER = "sapan";
   const VALID_PASS = "12345";
 
   function login() {
     const user = document.getElementById("userId").value;
     const pass = document.getElementById("password").value;
-
     if (user === VALID_USER && pass === VALID_PASS) {
       document.getElementById("loginForm").style.display = "none";
       document.getElementById("mainForm").style.display = "block";
@@ -122,91 +106,84 @@
     }
   }
 
-  // LOGIKA SCANNER BARCODE BARU (LEBIH STABIL)
-  let scannerInstance = null;
+  // OPERASIONAL SCANNER UTAMA
+  let html5Qrcode = null;
 
-  function toggleScan() {
-    const readerDiv = document.getElementById('reader');
-    const btnScan = document.getElementById('btnScanAction');
+  function toggleKamera() {
+    const readerElement = document.getElementById("reader");
+    const btnScan = document.getElementById("btnScanAction");
 
-    // Jika sedang tidak aktif, kita aktifkan
-    if (readerDiv.style.display === 'none') {
-      readerDiv.style.display = 'block';
-      btnScan.innerText = "❌ Tutup Kamera Scan";
+    // Mulai Kamera jika sedang tertutup
+    if (readerElement.style.display === "none") {
+      readerElement.style.display = "block";
+      btnScan.innerText = "❌ Matikan Kamera";
       btnScan.style.backgroundColor = "#d32f2f";
 
-      if (!scannerInstance) {
-        // Membuat scanner baru di elemen #reader
-        scannerInstance = new Html5QrcodeScanner("reader", { 
-          fps: 10, 
-          qrbox: { width: 250, height: 150 },
-          rememberLastUsedCamera: true
-        }, /* verbose= */ false);
+      if (!html5Qrcode) {
+        html5Qrcode = new Html5Qrcode("reader");
       }
-      
-      // Jalankan scanner render
-      scannerInstance.render(onScanSuccess, onScanError);
+
+      // Membuka kamera belakang HP secara paksa (environment)
+      html5Qrcode.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+          // Aksi jika scan sukses
+          document.getElementById("nama_barang").value = decodedText;
+          matikanKameraSaja();
+        },
+        (errorMessage) => {
+          // Abaikan log eror berkala pencarian barcode
+        }
+      ).catch(err => {
+        alert("Akses kamera ditolak/gagal: " + err);
+        matikanKameraSaja();
+      });
+
     } else {
-      // Jika sedang aktif, kita matikan
-      matikanScanner();
+      // Matikan kamera jika sedang terbuka
+      matikanKameraSaja();
     }
   }
 
-  function onScanSuccess(decodedText, decodedResult) {
-    // 1. Masukkan hasil ke input nama barang
-    document.getElementById('nama_barang').value = decodedText;
-    // 2. Matikan kamera secara otomatis setelah sukses mendeteksi
-    matikanScanner();
-  }
-
-  function onScanError(errorMessage) {
-    // Biarkan kosong agar konsol log browser tidak penuh saat mencari kode batang
-  }
-
-  function matikanScanner() {
-    const readerDiv = document.getElementById('reader');
-    const btnScan = document.getElementById('btnScanAction');
+  function matikanKameraSaja() {
+    const readerElement = document.getElementById("reader");
+    const btnScan = document.getElementById("btnScanAction");
     
-    if (scannerInstance) {
-      scannerInstance.clear().then(() => {
-        readerDiv.style.display = 'none';
-        btnScan.innerText = "📷 Buka Kamera Scan";
+    if (html5Qrcode && html5Qrcode.isScanning) {
+      html5Qrcode.stop().then(() => {
+        readerElement.style.display = "none";
+        btnScan.innerText = "📷 Aktifkan Kamera Scan";
         btnScan.style.backgroundColor = "#2e7d32";
       }).catch(err => {
-        console.error("Gagal membersihkan scanner:", err);
-        // Paksa sembunyikan jika hang
-        readerDiv.style.display = 'none';
+        console.error("Gagal menghentikan track kamera:", err);
       });
+    } else {
+      readerElement.style.display = "none";
+      btnScan.innerText = "📷 Aktifkan Kamera Scan";
+      btnScan.style.backgroundColor = "#2e7d32";
     }
   }
 
-  // Konfigurasi Pengiriman Google Sheets (Tanpa Jeda)
+  // Alur Kirim ke Google Sheets
   const scriptURL = 'https://google.com';
   const form = document.getElementById('returForm');
 
   form.addEventListener('submit', e => {
     e.preventDefault();
-    
-    // Pastikan kamera mati saat form dikirim
-    matikanScanner();
+    matikanKameraSaja();
 
     const formData = new FormData(form);
     const sekarang = new Date();
     const opsiWaktu = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    const tanggalMasuk = Clinical = sekarang.toLocaleString('id-ID', opsiWaktu);
-    
-    formData.append('tanggal_masuk', tanggalMasuk);
+    formData.append('tanggal_masuk', sekarang.toLocaleString('id-ID', opsiWaktu));
 
     alert("Data berhasil dikirim!"); 
     form.reset();
 
     fetch(scriptURL, { method: 'POST', body: formData })
-      .then(response => {
-        console.log("Data sukses tercatat di Google Sheets:", response);
-      })
-      .catch(error => {
-        console.error("Gagal sinkronisasi ke latar belakang:", error);
-      });
+      .then(res => console.log("Sukses sinkronisasi Google Sheets"))
+      .catch(err => console.error("Eror sinkronisasi latar belakang:", err));
   });
 </script>
 
