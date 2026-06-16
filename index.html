@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Form Input Barang - Login</title>
-  <!-- SCRIPT UNTUK LIBRARY SCANNER BARCODE -->
-  <script src="https://unpkg.com" type="text/javascript"></script>
+  <!-- SCRIPT UTK LIBRARY SCANNER BARCODE (PILIH VERSI STABIL MINI) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
   
   <style>
     body {
@@ -43,9 +43,6 @@
       background-color: #0d47a1;
     }
     /* Style Tambahan untuk Scanner */
-    .input-group {
-      position: relative;
-    }
     .btn-scan {
       background-color: #2e7d32;
       margin-top: 0;
@@ -59,7 +56,23 @@
       border-radius: 8px;
       overflow: hidden;
       margin-bottom: 15px;
-      border: none !important; /* Menghilangkan border default library */
+      border: 1px solid #ccc !important;
+      background-color: #fafafa;
+    }
+    /* Merapikan tombol bawaan library di dalam kotak scanner */
+    #reader button {
+      background-color: #f44336;
+      color: white;
+      padding: 6px 10px;
+      margin: 5px auto;
+      width: auto;
+      display: block;
+    }
+    #reader select {
+      padding: 5px;
+      margin: 5px auto;
+      display: block;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -82,7 +95,7 @@
     <form id="returForm">
       <div class="input-group">
         <input type="text" name="nama_barang" id="nama_barang" placeholder="Nama Barang / Barcode" required>
-        <button type="button" class="btn-scan" onclick="startScan()">📷 Scan Barcode via Kamera</button>
+        <button type="button" class="btn-scan" id="btnScanAction" onclick="toggleScan()">📷 Buka Kamera Scan</button>
       </div>
       <input type="number" name="jumlah" placeholder="Jumlah" required>
       <input type="text" name="dus" placeholder="Dus" required>
@@ -109,65 +122,78 @@
     }
   }
 
-  // LOGIKA SCANNER BARCODE
-  let html5QrcodeScanner = null;
+  // LOGIKA SCANNER BARCODE BARU (LEBIH STABIL)
+  let scannerInstance = null;
 
-  function startScan() {
+  function toggleScan() {
     const readerDiv = document.getElementById('reader');
-    readerDiv.style.display = 'block'; // Tampilkan kotak kamera
+    const btnScan = document.getElementById('btnScanAction');
 
-    // Inisialisasi scanner jika belum ada
-    if (!html5QrcodeScanner) {
-      html5QrcodeScanner = new Html5Qrcode("reader");
-    }
+    // Jika sedang tidak aktif, kita aktifkan
+    if (readerDiv.style.display === 'none') {
+      readerDiv.style.display = 'block';
+      btnScan.innerText = "❌ Tutup Kamera Scan";
+      btnScan.style.backgroundColor = "#d32f2f";
 
-    // Jalankan kamera belakang (environment)
-    html5QrcodeScanner.start(
-      { facingMode: "environment" }, 
-      {
-        fps: 10,    // Kecepatan scan per detik
-        qrbox: { width: 250, height: 150 } // Area kotak fokus scan
-      },
-      (decodedText, decodedResult) => {
-        // JIKA BARCODE BERHASIL TERBACA:
-        document.getElementById('nama_barang').value = decodedText; // Masukkan hasil ke input
-        stopScan(); // Matikan kamera otomatis
-      },
-      (errorMessage) => {
-        // Abaikan error pencarian berkala agar tidak memenuhi log
+      if (!scannerInstance) {
+        // Membuat scanner baru di elemen #reader
+        scannerInstance = new Html5QrcodeScanner("reader", { 
+          fps: 10, 
+          qrbox: { width: 250, height: 150 },
+          rememberLastUsedCamera: true
+        }, /* verbose= */ false);
       }
-    ).catch((err) => {
-      alert("Gagal membuka kamera: " + err);
-      readerDiv.style.display = 'none';
-    });
+      
+      // Jalankan scanner render
+      scannerInstance.render(onScanSuccess, onScanError);
+    } else {
+      // Jika sedang aktif, kita matikan
+      matikanScanner();
+    }
   }
 
-  function stopScan() {
-    if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
-      html5QrcodeScanner.stop().then(() => {
-        document.getElementById('reader').style.style.display = 'none';
-      }).catch((err) => {
-        console.error("Gagal menghentikan kamera", err);
+  function onScanSuccess(decodedText, decodedResult) {
+    // 1. Masukkan hasil ke input nama barang
+    document.getElementById('nama_barang').value = decodedText;
+    // 2. Matikan kamera secara otomatis setelah sukses mendeteksi
+    matikanScanner();
+  }
+
+  function onScanError(errorMessage) {
+    // Biarkan kosong agar konsol log browser tidak penuh saat mencari kode batang
+  }
+
+  function matikanScanner() {
+    const readerDiv = document.getElementById('reader');
+    const btnScan = document.getElementById('btnScanAction');
+    
+    if (scannerInstance) {
+      scannerInstance.clear().then(() => {
+        readerDiv.style.display = 'none';
+        btnScan.innerText = "📷 Buka Kamera Scan";
+        btnScan.style.backgroundColor = "#2e7d32";
+      }).catch(err => {
+        console.error("Gagal membersihkan scanner:", err);
+        // Paksa sembunyikan jika hang
+        readerDiv.style.display = 'none';
       });
-    } else {
-      document.getElementById('reader').style.display = 'none';
     }
   }
 
   // Konfigurasi Pengiriman Google Sheets (Tanpa Jeda)
-  const scriptURL = 'https://script.google.com/macros/s/AKfycbxOX4KSEyBZ7WUUQyvUP9BU3uu7TnBr0Ikhim50gg_4WRGcgzNw2kDwePVLMvLpHmY/exec';
+  const scriptURL = 'https://google.com';
   const form = document.getElementById('returForm');
 
   form.addEventListener('submit', e => {
     e.preventDefault();
     
     // Pastikan kamera mati saat form dikirim
-    stopScan();
+    matikanScanner();
 
     const formData = new FormData(form);
     const sekarang = new Date();
     const opsiWaktu = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    const tanggalMasuk = sekarang.toLocaleString('id-ID', opsiWaktu);
+    const tanggalMasuk = Clinical = sekarang.toLocaleString('id-ID', opsiWaktu);
     
     formData.append('tanggal_masuk', tanggalMasuk);
 
@@ -186,5 +212,3 @@
 
 </body>
 </html>
-
-  
